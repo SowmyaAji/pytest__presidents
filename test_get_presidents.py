@@ -2,57 +2,44 @@ import pytest
 from get_presidents import QueryPresidents
 
 class TestQueryPresidents():
-    url = "https://api.duckduckgo.com"
-    @pytest.fixture(scope="function")
-    def test_query_object(self):
-        """Fixture that is rebuilt after each function.
-
-        Returns:
-            a test query object
-        """
-        query = "presidents+of+the+United+States"
-        return QueryPresidents(self.url, query)
-    
-    
-    def test_ddg0(self):
-        query = "DuckDuckGo"
-        test_query = QueryPresidents(self.url, query)
-        res = test_query.get_response()
-        assert "DuckDuckGo" in res["Heading"]
     
     def test_wrong_query(self):
+        url = "https://api.duckduckgo.com"
         query  = "List+Of+Presidents+of+United+States+of+America"
-        test_query = QueryPresidents(self.url, query)
+        test_query = QueryPresidents(url, query)
         res = test_query.get_response()
         assert res["RelatedTopics"] == []
     
-    def test_get_presidents(self, test_query_object):
-        res = test_query_object.get_response()
-        assert "Presidents of the United States" in res["Heading"]
+    @pytest.fixture(scope="class")
+    def test_query_results(self):
+        """Fixture that is built just once for the class
+
+        Returns:
+            the matched results, api response and the list of presidents to check against as a tuple
+        """
+        url = "https://api.duckduckgo.com"
+        query = "presidents+of+the+United+States"
+        test_query_object = QueryPresidents(url, query)
+        return test_query_object.match_results() # (matched_results, api response, presidents_list)
+    
+    def test_get_presidents(self, test_query_results):
+        assert "Presidents of the United States" in test_query_results[1]["Heading"]
         
-    def test_related_topics(self, test_query_object):
-        res = test_query_object.get_response()
-        all_res =  res["RelatedTopics"]
+    def test_related_topics(self, test_query_results):
+        all_res =  test_query_results[1]["RelatedTopics"]
         assert len(all_res)
     
-    def test_get_results(self, test_query_object):
-        results = test_query_object.get_results()
-        assert len(results) != len(test_query_object._presidents_list) # the results list is greater because the Text field has additional entries like speeches and books as well
+    def test_match_results_length(self, test_query_results):
+        assert len(test_query_results[0]) == len(test_query_results[2]) # confirm that all the presidents in the presidents_list are in the response
     
-    def test_does_not_match_results_length(self, test_query_object):
-        matched = test_query_object.match_results()
-        assert len(matched) == len(test_query_object._presidents_list) # confirm that all the presidents in the presidents_list are in the response
+    def test_does_not_match_results(self, test_query_results):
+        assert test_query_results[0] != test_query_results[2] # the results of don't match because neither list is in sorted order
     
-    def test_does_not_match_results(self, test_query_object):
-        matched = test_query_object.match_results()
-        assert matched != test_query_object._presidents_list # because neither of them are in sorted order
+    def test_match_results(self, test_query_results):
+        assert sorted(test_query_results[0]) == sorted(test_query_results[2])
     
-    def test_match_results(self, test_query_object):
-        matched = test_query_object.match_results()
-        assert sorted(matched) == sorted(test_query_object._presidents_list)
-    
-    def test_name_not_repeated(self, test_query_object):
-        matched = test_query_object.match_results()
+    def test_name_not_repeated(self, test_query_results):
+        matched = test_query_results[0]
         for match in matched:
             assert matched.count(match) == 1 # this will always work because set() has been called on matched results in the code and there is no chance of a bug like a name getting repeated, even if it is repeated in the results list
         

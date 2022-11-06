@@ -17,12 +17,11 @@ class QueryPresidents():
         response = self.get_response()
         print("Heading: ", response["Heading"])
         all_res = response["RelatedTopics"]
-        results = [res["Text"][:25].upper() for res in all_res]
+        results = [res["Text"][:25].upper() for res in all_res]  # get just the first bit to reduce the amount of string to be checked; upper case it to standardize the case for checking
         return results
     
     def match_results(self) -> list:
         results = self.get_results()
-        # get just the first bit to reduce the amount of string to be checked; upper case it to standardize the case for checking
         matched_presidents = set([prez for prez in self._presidents_list if any(prez.upper() in result for result in results)])# gets each string in the texts field that includes a Prez's name and the set makes sure a Prez's name doesn't come twice if it is repeated in the two texts
         return list(matched_presidents)
 
